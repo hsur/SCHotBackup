@@ -1,15 +1,14 @@
 #!/bin/bash
-# sakura cloud daily archive script by blog.cles.jp
-# License: BSD 2-clause
+# sakura cloud daily archive script by CLES
 
 SCRIPT_DIR=`dirname $0`
 cd $SCRIPT_DIR
 
-SEC_TOKEN="your token"
-SEC_SECRET="your secret"
 DESCRIPTION="daily autobackup"
+MAX_SLEEP_SECS=1800
+SLEEP_INTERVAL=30
 
-cmd_check(){ which $1 > /dev/null 2>&1 || ( echo "$1 not found" && exit 5 ) }
+cmd_check(){ which $1 > /dev/null 2>&1 || ( echo "$1 command not found" && exit 5 ) }
 
 logger(){
   if [ "$#" -ne 0 ] ; then
@@ -25,7 +24,7 @@ sa_api(){
     -X "${2}" \
     -d "${3}" \
     -o ${4} \
-    https://secure.sakura.ad.jp/cloud/zone/is1a/api/cloud/1.1${1} \
+    https://secure.sakura.ad.jp/cloud/zone/${SC_ZONE}/api/cloud/1.1${1} \
     -s
   return $?
 }
@@ -59,6 +58,20 @@ archive_availability(){
   return ${PIPESTATUS[0]}
 }
 
+sleep_until_archive_is_available(){
+  TTL=$(( $SECONDS + $MAX_SLEEP_SECS ))
+  while [ "`archive_availability $1`" != "available" ] ; do
+    logger "waiting..."
+    sleep 30
+
+    if [ "$TTL" -le "$SECONDS" ]; then
+      logger "[ERROR] Timed out!: $1"
+      return 1
+    fi
+  done
+  return 0
+}
+
 delete_archive(){
   if [ "$#" -ne 1 ] ; then
     return 1
@@ -70,6 +83,11 @@ delete_archive(){
 ###### MAIN Routine #####
 
 cmd_check curl
+cmd_check json
+
+SEC_TOKEN="`json token < ./config.json`"
+SEC_SECRET="`json secret < ./config.json`"
+SC_ZONE="`json zone < ./config.json`"
 
 logger "===== START ====="
 TIMESTAMP="`date "+%Y%m%d"`"
@@ -92,15 +110,19 @@ get_disk_list | while read DISK_ID DISK_NAME ; do
     logger "ARCHIVE_ID: $ARCHIVE_ID"
   fi
 
-  while [ "`archive_availability $ARCHIVE_ID`" != "available" ] ; do
-    sleep 30
-    logger "waiting..."
-  done
+  sleep_until_archive_is_available "$ARCHIVE_ID"
+  ARCHIVE_STATUS=$?
 
-  get_old_archive_list "$DISK_ID" "$ARCHIVE_ID" "$DESCRIPTION" | while read OLD_ARCHIVE_ID OLD_ACHIVE_NAME ; do
-    logger "deleting old archive: $OLD_ARCHIVE_ID $OLD_ACHIVE_NAME"
-    logger `delete_archive "$OLD_ARCHIVE_ID"`
-  done
+  if [ "$ARCHIVE_STATUS" -eq 0 ] ; then
+    get_old_archive_list "$DISK_ID" "$ARCHIVE_ID" "$DESCRIPTION" | while read OLD_ARCHIVE_ID OLD_ACHIVE_NAME ; do
+      logger "deleting old archive: $OLD_ARCHIVE_ID $OLD_ACHIVE_NAME"
+      logger `delete_archive "$OLD_ARCHIVE_ID"`
+    done
+  else
+    logger "[ERROR] Failed to create archive."
+    logger "delete_archive()"
+    logger `delete_archive "$ARCHIVE_ID"`
+  fi
 
   rm -rf "$TMP_ARCHIVE_JSON"
   logger "----- END: $DISK_ID ($DISK_NAME) -----"
