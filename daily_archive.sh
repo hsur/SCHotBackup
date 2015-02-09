@@ -62,7 +62,7 @@ sleep_until_archive_is_available(){
   TTL=$(( $SECONDS + $MAX_SLEEP_SECS ))
   while [ "`archive_availability $1`" != "available" ] ; do
     logger "waiting..."
-    sleep 30
+    sleep "$SLEEP_INTERVAL"
 
     if [ "$TTL" -le "$SECONDS" ]; then
       logger "[ERROR] Timed out!: $1"
