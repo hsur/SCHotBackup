@@ -58,11 +58,19 @@ archive_availability(){
   return ${PIPESTATUS[0]}
 }
 
+archive_status(){
+  if [ "$#" -ne 1 ] ; then
+    return 1
+  fi
+  ARCSTAT=(`sa_api "/archive/${1}" "GET" "" - | json -a Archive.SizeMB Archive.MigratedMB`)
+  echo -n "${ARCSTAT[1]}/${ARCSTAT[0]}MB"
+}
+
 sleep_until_archive_is_available(){
   TTL=$(( $SECONDS + $MAX_SLEEP_SECS ))
   while [ "`archive_availability $1`" != "available" ] ; do
-    logger "waiting..."
-    sleep "$SLEEP_INTERVAL"
+    sleep $SLEEP_INTERVAL
+    logger "waiting... (`archive_status $1`)"
 
     if [ "$TTL" -le "$SECONDS" ]; then
       logger "[ERROR] Timed out!: $1"
@@ -85,9 +93,12 @@ delete_archive(){
 cmd_check curl
 cmd_check json
 
-SEC_TOKEN="`json token < ./config.json`"
-SEC_SECRET="`json secret < ./config.json`"
-SC_ZONE="`json zone < ./config.json`"
+CONFIG="./config.json"
+if [ -n "$1" ] ; then
+    CONFIG="$1"
+fi
+
+read SEC_TOKEN SEC_SECRET SC_ZONE < <( json -a token secret zone < $CONFIG )
 
 logger "===== START ====="
 TIMESTAMP="`date "+%Y%m%d"`"
