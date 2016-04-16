@@ -1,2 +1,36 @@
 # SCHotBackup
-Hot backup script for cloud.sakura.ad.jp
+
+さくらのクラウドAPIを利用してコマンドラインからバックアップをとるためのスクリプト
+
+## 必要なもの
+
+  * curl
+  * xz
+  * Node.JS 
+  * trentm/json (https://github.com/trentm/json)
+  * さくらのクラウドのAPIキー（`ACCESS TOKEN` と `ACCESS SECRET`) 
+
+## 使い方
+
+  1. 適当な Linux マシンを用意し、スクリプトを配置します
+  1. APIキーは `config.json` に書込んでおきます
+
+## `daily_archive.sh`
+
+ゾーンにあるディスクのアーカイブを作成します。日次でアーカイブ作成することを目的に作成しました。
+古いアーカイブについては自動的に削除するようにしていますので、定期的に起動しても１サーバにつき１つしかアーカイブはできません。
+
+## `img_backup.sh`
+
+ゾーンにあるディスクをローカルに転送します。
+転送作業用にアーカイブを作成しますが、転送終了後には自動的に削除されます。
+
+## コマンドラインオプション
+
+ `./daily_archive_or_img_backup.sh [-t タグ名] [-d] [-h] [config.json]`
+
+  * `-t`) 特定のタグがついたディスクのみを処理対象にする
+  * `-d`) Dryrun モード（実際のアーカイブ作成や転送を行わないテストモード）
+  * `-h`) 使い方を表示します
+  * `config.json`) 設定ファイルを指定します
+
