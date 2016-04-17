@@ -40,7 +40,7 @@ get_disk_list(){
   if [ -n "$1" ] ; then
     sa_api "/disk" "GET" "" - | json Disks | json -C "this.Tags.indexOf('$1') >= 0 && this.Tags.indexOf('$SKIP_TAG') < 0" | json -a ID Name
   else
-    sa_api "/disk" "GET" "" - | json Disks | json -a ID Name
+    sa_api "/disk" "GET" "" - | json Disks | json -C "this.Tags.indexOf('$SKIP_TAG') < 0" | json -a ID Name
   fi
   return ${PIPESTATUS[0]}
 }
