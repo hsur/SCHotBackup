@@ -12,11 +12,14 @@ SKIP_TAG="SCHB-SKIP"
 
 . _sa_api.sh
 
-while getopts t:dh OPT
+while getopts t:r:dh OPT
 do
     case $OPT in
         t)  TARGET_GROUP=$OPTARG
             logger "Target Group: $OPTARG"
+            ;;
+        r)  REGION=$OPTARG
+            logger "Target Region: $OPTARG"
             ;;
         d)  DRYRUN=1
             logger "Entering dryrun mode!"
@@ -39,6 +42,9 @@ if [ -n "$1" ] ; then
 fi
 
 read SEC_TOKEN SEC_SECRET SC_ZONE < <( json -a token secret zone < $CONFIG )
+if [ -n "$REGION" ] ; then
+    SC_ZONE="$REGION"
+fi
 
 logger "===== START ====="
 TIMESTAMP="`date "+%Y%m%d"`"
