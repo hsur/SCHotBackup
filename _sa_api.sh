@@ -32,7 +32,7 @@ get_old_archive_list(){
   if [ "$#" -ne 3 ] ; then
     return 1
   fi
-  sa_api "/archive" "GET" "" - | json Archives | json -C "this.Scope == 'user' && this.Description == '${3}' && this.SourceDisk.ID == '${1}' && this.ID != '${2}' " | json -a ID Name
+  sa_api "/archive" "GET" "" - | json Archives | json -C "this.Scope == 'user' && this.Description == '${3}' && this.SourceDisk != null && this.SourceDisk.ID == '${1}' && this.ID != '${2}' " | json -a ID Name
   return ${PIPESTATUS[0]}
 }
 
